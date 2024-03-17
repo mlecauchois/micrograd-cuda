@@ -3,7 +3,6 @@ import math
 from micrograd_cuda.operations import (
     tanh,
     tanh_prime,
-    exp,
     zeros_matrix_like,
     ones_matrix_like,
     matrix_mul,
@@ -11,26 +10,28 @@ from micrograd_cuda.operations import (
     matrix_add,
     element_wise_mul,
     matrix_transpose,
+    power,
+    power_prime,
+    tanh,
+    tanh_prime,
 )
 
 
 class Tensor:
 
-    def __init__(self, data, _children=(), _op="", label=""):
+    def __init__(self, data, _children=(), _op="", label="", requires_grad=True):
         self.data = data  # Nested list
-        self.grad = zeros_matrix_like(self.data)
+        self.requires_grad = requires_grad
+        self.grad = Tensor(zeros_matrix_like(data), requires_grad=False) if self.requires_grad else None
         self._backward = lambda: None
         self._prev = set(_children)
         self._op = _op
         self.label = label
+        self.device = "cpu"
 
     @property
     def shape(self):
-        # Initialize the shape list
         shape = []
-
-        # Check the first element to determine if it's a list
-        # and recursively find the dimensions
         element = self.data
         while isinstance(element, list):
             shape.append(len(element))
@@ -43,14 +44,14 @@ class Tensor:
 
     def __matmul__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
-        out = Tensor(matrix_mul(self.data, other.data), (self, other), "@")
+        out = Tensor(matrix_mul(self.data, other.data, device=self.device), (self, other), "@")
 
         def _backward():
-            self.grad = matrix_add(
-                self.grad, matrix_mul(out.grad, matrix_transpose(other.data))
+            self.grad.data = matrix_add(
+                self.grad.data, matrix_mul(out.grad.data, matrix_transpose(other.data, device=self.device), device=self.device), device=self.device
             )
-            other.grad = matrix_add(
-                other.grad, matrix_mul(matrix_transpose(self.data), out.grad)
+            other.grad.data = matrix_add(
+                other.grad.data, matrix_mul(matrix_transpose(self.data, device=self.device), out.grad.data, device=self.device), device=self.device
             )
 
         out._backward = _backward
@@ -61,11 +62,11 @@ class Tensor:
 
     def __mul__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
-        out = Tensor(element_wise_mul(self.data, other.data), (self, other), "*")
+        out = Tensor(element_wise_mul(self.data, other.data, device=self.device), (self, other), "*")
 
         def _backward():
-            self.grad = matrix_add(self.grad, element_wise_mul(out.grad, other.data))
-            other.grad = matrix_add(other.grad, element_wise_mul(self.data, out.grad))
+            self.grad.data = matrix_add(self.grad.data, element_wise_mul(out.grad.data, other.data, device=self.device), device=self.device)
+            other.grad.data = matrix_add(other.grad.data, element_wise_mul(self.data, out.grad.data, device=self.device), device=self.device)
 
         out._backward = _backward
         return out
@@ -75,11 +76,11 @@ class Tensor:
 
     def __add__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
-        out = Tensor(matrix_add(self.data, other.data), (self, other), "+")
+        out = Tensor(matrix_add(self.data, other.data, device=self.device), (self, other), "+")
 
         def _backward():
-            self.grad = matrix_add(self.grad, out.grad)
-            other.grad = matrix_add(other.grad, out.grad)
+            self.grad.data = matrix_add(self.grad.data, out.grad.data, device=self.device)
+            other.grad.data = matrix_add(other.grad.data, out.grad.data, device=self.device)
 
         out._backward = _backward
 
@@ -89,25 +90,21 @@ class Tensor:
         return self + other
 
     def __neg__(self):
-        neg_one = matrix_scalar_mul(-1, ones_matrix_like(self.data))
+        neg_one = matrix_scalar_mul(-1, ones_matrix_like(self.data), device=self.device)
         return self * neg_one
 
     def __sub__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
         return self + (-other)
 
-    def __pow__(self, power):
-
-        # Apply power function element-wise
-        result_data = [[x_ij**power for x_ij in row] for row in self.data]
-        out = Tensor(result_data, (self,), f"**{power}")
+    def __pow__(self, exponent):
+        result_data = power(self.data, exponent, device=self.device)
+        out = Tensor(result_data, (self,), f"**{exponent}")
 
         def _backward():
-            # Compute gradient with respect to the input tensor
-            for i, row in enumerate(self.data):
-                for j, val in enumerate(row):
-                    # Derivative of val**power is power * val**(power-1)
-                    self.grad[i][j] += power * (val ** (power - 1)) * out.grad[i][j]
+            self.grad.data = matrix_add(
+                self.grad.data, element_wise_mul(power_prime(self.data, exponent, device=self.device), out.grad.data, device=self.device), device=self.device
+            )
 
         out._backward = _backward
 
@@ -118,17 +115,17 @@ class Tensor:
 
     @property
     def T(self):
-        transposed_data = matrix_transpose(self.data)
+        transposed_data = matrix_transpose(self.data, device=self.device)
         return Tensor(transposed_data, _children=(self,), _op="transpose")
 
-    def apply_func(self, func, func_prime):
-        result_data = [[func(x_ij) for x_ij in row] for row in self.data]
-        out = Tensor(result_data, (self,), func.__name__)
+    def tanh(self):
+        result_data = tanh(self.data, device=self.device)
+        out = Tensor(result_data, (self,), "tanh")
 
         def _backward():
-            for i, row in enumerate(self.data):
-                for j, _ in enumerate(row):
-                    self.grad[i][j] += func_prime(self.data[i][j]) * out.grad[i][j]
+            self.grad.data = matrix_add(
+                self.grad.data, element_wise_mul(tanh_prime(self.data, device=self.device), out.grad.data, device=self.device), device=self.device
+            )
 
         out._backward = _backward
         return out
@@ -141,19 +138,14 @@ class Tensor:
         out = Tensor(out_data, _children=(self,), _op="sum")
 
         def _backward():
+            # TODO: implement proper cpu and cuda kernel for this
             # The gradient of the sum operation is 1 for each element in the original tensor,
             # since each element contributes equally to the total sum.
-            grad_contribution = [[out.grad[0][0] for _ in row] for row in self.data]
-            self.grad = matrix_add(self.grad, grad_contribution)
+            grad_contribution = [[out.grad.data[0][0] for _ in row] for row in self.data]
+            self.grad.data = matrix_add(self.grad.data, grad_contribution, device=self.device)
 
         out._backward = _backward
         return out
-
-    def tanh(self):
-        return self.apply_func(tanh, tanh_prime)
-
-    def exp(self):
-        return self.apply_func(exp, exp)
 
     def concat(self, other, axis=0):
         # This implementation assumes a simple case where tensors are 2D
@@ -171,8 +163,8 @@ class Tensor:
             # Since concatenation is along axis=0, we split the gradient back to the original tensors
             # based on their data length
             self_len = len(self.data)
-            self.grad = matrix_add(self.grad, out.grad[:self_len])
-            other.grad = matrix_add(other.grad, out.grad[self_len:])
+            self.grad.data = matrix_add(self.grad.data, out.grad.data[:self_len], device=self.device)
+            other.grad.data = matrix_add(other.grad.data, out.grad.data[self_len:], device=self.device)
 
         out._backward = _backward
         return out
@@ -191,6 +183,6 @@ class Tensor:
 
         build_topo(self)
 
-        self.grad = ones_matrix_like(self.data)
+        self.grad = Tensor(ones_matrix_like(self.data), requires_grad=False)
         for node in reversed(topo):
             node._backward()

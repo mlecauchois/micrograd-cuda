@@ -1,127 +1,46 @@
 import math
-import ctypes
 
-liboperations = ctypes.CDLL('./liboperations.so')
-liboperations.matmul.argtypes = [
-    ctypes.POINTER(ctypes.c_float),
-    ctypes.POINTER(ctypes.c_float),
-    ctypes.POINTER(ctypes.c_float),
-    ctypes.c_int,  # widthA
-    ctypes.c_int,  # heightA
-    ctypes.c_int   # widthB
-]
-
-def flatten(nested_list):
-    return [item for sublist in nested_list for item in sublist]
-
-def reshape(flat_list, shape):
-    if len(shape) == 2:
-        return [flat_list[i * shape[1]: (i + 1) * shape[1]] for i in range(shape[0])]
-    raise ValueError("This function only supports reshaping to 2D lists.")
-
-def tanh(x):
-    return (math.exp(2 * x) - 1) / (math.exp(2 * x) + 1)
-
-
-def tanh_prime(x):
-    t = tanh(x)
-    return 1 - t**2
-
-
-def exp(x):
-    return math.exp(x)
-
+from micrograd_cuda.operations_cpu import matrix_mul_cpu, matrix_scalar_mul_cpu, matrix_add_cpu, matrix_transpose_cpu, element_wise_mul_cpu, power_cpu, power_prime_cpu, tanh_cpu, tanh_prime_cpu
 
 def zeros_matrix_like(matrix):
     return [[0 for _ in row] for row in matrix]
 
-
 def ones_matrix_like(matrix):
     return [[1 for _ in row] for row in matrix]
 
+def matrix_mul(matrix_a, matrix_b, device: str):
+    if device == "cpu":
+        return matrix_mul_cpu(matrix_a, matrix_b)
 
-def matrix_mul(matrix_a, matrix_b):
-    rows_a = len(matrix_a)
-    cols_a = len(matrix_a[0])
-    rows_b = len(matrix_b)
-    cols_b = len(matrix_b[0])
+def matrix_scalar_mul(scalar, matrix, device: str):
+    if device == "cpu":
+        return matrix_scalar_mul_cpu(scalar, matrix)
+    
+def matrix_add(matrix_a, matrix_b, device: str):
+    if device == "cpu":
+        return matrix_add_cpu(matrix_a, matrix_b)
+    
+def matrix_transpose(matrix, device: str):
+    if device == "cpu":
+        return matrix_transpose_cpu(matrix)
+    
+def element_wise_mul(matrix_a, matrix_b, device: str):
+    if device == "cpu":
+        return element_wise_mul_cpu(matrix_a, matrix_b)
 
-    if cols_a != rows_b:
-        raise ValueError(
-            f"The number of columns in the first matrix must be equal to the number of rows in the second matrix. Got cols_a {cols_a} and rows_b {rows_b}."
-        )
-
-    result = [[0 for _ in range(cols_b)] for _ in range(rows_a)]
-
-    for i in range(rows_a):
-        for j in range(cols_b):
-            for k in range(cols_a):
-                result[i][j] += matrix_a[i][k] * matrix_b[k][j]
-
-    return result
-
-def matrix_mul_cuda(matrix_a, matrix_b):
-
-    # Flatten the input nested lists
-    flat_a = flatten(matrix_a)
-    flat_b = flatten(matrix_b)
-
-    # Determine the dimensions of the input matrices
-    heightA = len(matrix_a)
-    widthA = len(matrix_a[0])
-    widthB = len(matrix_b[0])
-
-    # Create the output flat list (initialized with zeros)
-    flat_c = [0] * (heightA * widthB)
-
-    # Convert the flat lists to ctypes arrays
-    array_type_a = ctypes.c_float * len(flat_a)
-    array_type_b = ctypes.c_float * len(flat_b)
-    array_type_c = ctypes.c_float * len(flat_c)
-
-    flat_a = array_type_a(*flat_a)
-    flat_b = array_type_b(*flat_b)
-    flat_c = array_type_c(*flat_c)
-
-    # Call the matmul function
-    liboperations.matmul(
-        flat_a, flat_b, flat_c,
-        widthA, heightA, widthB
-    )
-
-    # Convert the c type to a Python list
-    flat_c = list(flat_c)
-
-    # Reshape the flat output list back into a nested list
-    c = reshape(flat_c, (heightA, widthB))
-
-    return c
-
-def matrix_scalar_mul(scalar, matrix):
-    return [[scalar * element for element in row] for row in matrix]
-
-
-def matrix_add(matrix_a, matrix_b):
-    if len(matrix_a) != len(matrix_b) or len(matrix_a[0]) != len(matrix_b[0]):
-        raise ValueError("Matrices are not of the same dimensions.")
-
-    result = [
-        [matrix_a[i][j] + matrix_b[i][j] for j in range(len(matrix_a[0]))]
-        for i in range(len(matrix_a))
-    ]
-    return result
-
-
-def matrix_transpose(matrix):
-    return [[matrix[j][i] for j in range(len(matrix))] for i in range(len(matrix[0]))]
-
-
-def element_wise_mul(matrix_a, matrix_b):
-    if len(matrix_a) != len(matrix_b) or len(matrix_a[0]) != len(matrix_b[0]):
-        raise ValueError(
-            "Matrices must be of the same size for element-wise multiplication."
-        )
-    return [
-        [matrix_a[i][j] * matrix_b[i][j] for j in range(len(matrix_a[0]))]
-        for i in range(len(matrix_a))
-    ]
+def power(matrix, exponent, device: str):
+    if device == "cpu":
+        return power_cpu(matrix, exponent)
+    
+def power_prime(matrix, exponent, device: str):
+    if device == "cpu":
+        return power_prime_cpu(matrix, exponent)
+    
+def tanh(matrix, device: str):
+    if device == "cpu":
+        return tanh_cpu(matrix)
+    
+def tanh_prime(matrix, device: str):
+    if device == "cpu":
+        return tanh_prime_cpu(matrix)
+    

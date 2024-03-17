@@ -37,12 +37,12 @@ def test_mlp_train():
 
         # backward pass
         for p in model.parameters():
-            p.grad = zeros_matrix_like(p.data)
+            p.grad.data = zeros_matrix_like(p.data)
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad), p.data)
+            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device), p.data, device=p.device)
 
         print(k, loss.data)
 
@@ -68,12 +68,12 @@ def test_mlp_train_batch():
 
         # backward pass
         for p in model.parameters():
-            p.grad = zeros_matrix_like(p.data)
+            p.grad.data = zeros_matrix_like(p.data)
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad), p.data)
+            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device), p.data, device=p.device)
 
         print(k, loss.data)
 

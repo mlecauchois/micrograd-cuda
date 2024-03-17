@@ -14,6 +14,9 @@ from micrograd_cuda.operations import (
     power_prime,
     tanh,
     tanh_prime,
+    matrix_concat,
+    summation,
+    to_device
 )
 
 
@@ -38,6 +41,19 @@ class Tensor:
             element = element[0] if element else []
 
         return tuple(shape)
+    
+    def to(self, device):
+        if device not in ["cpu", "cuda"]:
+            raise ValueError("Unsupported device. Choose 'cpu' or 'cuda'.")
+
+        if self.device == device:
+            return self
+
+        self.data = to_device(self.data, device=device)
+        
+        if self.grad is not None:
+            self.grad.data = to_device(self.grad.data, device=device)
+            self.grad.device = device
 
     def __repr__(self):
         return f"Tensor(data={self.data})"
@@ -131,16 +147,13 @@ class Tensor:
         return out
 
     def sum(self):
-        # Sum over all elements to produce a single scalar value within a 2D list for consistency
-        total_sum = sum(sum(row) for row in self.data)
+        total_sum = summation(self.data, device=self.device)
         out_data = [[total_sum]]  # Output is a 1x1 tensor
 
         out = Tensor(out_data, _children=(self,), _op="sum")
 
         def _backward():
-            # TODO: implement proper cpu and cuda kernel for this
-            # The gradient of the sum operation is 1 for each element in the original tensor,
-            # since each element contributes equally to the total sum.
+            # TODO: proper kernel for this since can't use indexing for cuda tensors
             grad_contribution = [[out.grad.data[0][0] for _ in row] for row in self.data]
             self.grad.data = matrix_add(self.grad.data, grad_contribution, device=self.device)
 
@@ -155,13 +168,12 @@ class Tensor:
                 "Concatenation along this axis is not implemented."
             )
 
-        concatenated_data = self.data + other.data
-
-        out = Tensor(concatenated_data, _children=(self, other), _op="concat")
+        out = Tensor(matrix_concat(self.data, other.data, device=self.device), _children=(self, other), _op="concat")
 
         def _backward():
             # Since concatenation is along axis=0, we split the gradient back to the original tensors
             # based on their data length
+            # TODO: proper kernel for this since can't use indexing for cuda tensors
             self_len = len(self.data)
             self.grad.data = matrix_add(self.grad.data, out.grad.data[:self_len], device=self.device)
             other.grad.data = matrix_add(other.grad.data, out.grad.data[self_len:], device=self.device)

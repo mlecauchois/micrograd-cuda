@@ -61,3 +61,9 @@ def power_cpu(matrix, exponent):
 
 def power_prime_cpu(matrix, exponent):
     return [[exponent * (x_ij**(exponent - 1)) for x_ij in row] for row in matrix]
+
+def matrix_concat_cpu(matrix_a, matrix_b):
+    return matrix_a + matrix_b
+
+def summation_cpu(matrix):
+    return sum([sum(row) for row in matrix])

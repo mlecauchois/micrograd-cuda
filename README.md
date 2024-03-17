@@ -48,6 +48,7 @@ for k in range(epochs):
 - [ ] CUDA optimizations for matrix multiplication
 - [ ] >2D tensors, indexing and better tensor logic
 - [ ] MNIST with MLP
+- [ ] Blogpost
 - [ ] ConvNet implementation and CUDA kernel
 - [ ] MNIST with ConvNet
 - [ ] Transformers? Efficient attention CUDA kernel?

@@ -1,3 +1,5 @@
+import time
+
 from micrograd_cuda.mlp import MLP
 from micrograd_cuda.tensor import Tensor
 from micrograd_cuda.tensor import matrix_add, matrix_scalar_mul, zeros_matrix_like
@@ -20,11 +22,10 @@ def test_mlp_inference():
     assert round(out.data[0][0], 5) == first_value
 
 
-# TODO: use operators for the training loop
-
-
 def test_mlp_train():
     model = MLP.load("tests/data/mlp")
+
+    start = time.time()
 
     for k in range(20):
 
@@ -50,9 +51,13 @@ def test_mlp_train():
 
     assert round(loss.data[0][0], 5) == last_loss
 
+    print(f"Elapsed: {time.time() - start:.2f} sec")
+
 
 def test_mlp_train_batch():
     model = MLP.load("tests/data/mlp")
+
+    start = time.time()
 
     for k in range(20):
 
@@ -76,3 +81,5 @@ def test_mlp_train_batch():
             assert round(loss.data[0][0], 5) == first_loss
 
     assert round(loss.data[0][0], 5) == last_loss
+
+    print(f"Elapsed: {time.time() - start:.2f} sec")

@@ -2,7 +2,7 @@
 
 ![](front.jpg)
 
-Teaching myself basic CUDA by building tensor-based autodiff from the ground up, inspired by [Andrej's micrograd](https://github.com/karpathy/micrograd/tree/master).
+Teaching myself basic CUDA by building GPU-accelerated tensor-based autodiff from the ground up, inspired by [Andrej's micrograd](https://github.com/karpathy/micrograd/tree/master).
 
 ## Usage
 

@@ -4,6 +4,14 @@
 
 Teaching myself basic CUDA by building GPU-accelerated tensor-based autodiff from the ground up, inspired by [Andrej's micrograd](https://github.com/karpathy/micrograd/tree/master).
 
+## Compiling
+
+To compile the CUDA kernels:
+
+```bash
+nvcc -shared -o liboperations.so micrograd_cuda/operations.cu -Xcompiler -fPIC
+```
+
 ## Usage
 
 ```python

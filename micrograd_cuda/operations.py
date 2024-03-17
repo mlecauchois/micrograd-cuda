@@ -1,5 +1,23 @@
 import math
+import ctypes
 
+liboperations = ctypes.CDLL('./liboperations.so')
+liboperations.matmul.argtypes = [
+    ctypes.POINTER(ctypes.c_float),
+    ctypes.POINTER(ctypes.c_float),
+    ctypes.POINTER(ctypes.c_float),
+    ctypes.c_int,  # widthA
+    ctypes.c_int,  # heightA
+    ctypes.c_int   # widthB
+]
+
+def flatten(nested_list):
+    return [item for sublist in nested_list for item in sublist]
+
+def reshape(flat_list, shape):
+    if len(shape) == 2:
+        return [flat_list[i * shape[1]: (i + 1) * shape[1]] for i in range(shape[0])]
+    raise ValueError("This function only supports reshaping to 2D lists.")
 
 def tanh(x):
     return (math.exp(2 * x) - 1) / (math.exp(2 * x) + 1)
@@ -42,6 +60,42 @@ def matrix_mul(matrix_a, matrix_b):
 
     return result
 
+def matrix_mul_cuda(matrix_a, matrix_b):
+
+    # Flatten the input nested lists
+    flat_a = flatten(matrix_a)
+    flat_b = flatten(matrix_b)
+
+    # Determine the dimensions of the input matrices
+    heightA = len(matrix_a)
+    widthA = len(matrix_a[0])
+    widthB = len(matrix_b[0])
+
+    # Create the output flat list (initialized with zeros)
+    flat_c = [0] * (heightA * widthB)
+
+    # Convert the flat lists to ctypes arrays
+    array_type_a = ctypes.c_float * len(flat_a)
+    array_type_b = ctypes.c_float * len(flat_b)
+    array_type_c = ctypes.c_float * len(flat_c)
+
+    flat_a = array_type_a(*flat_a)
+    flat_b = array_type_b(*flat_b)
+    flat_c = array_type_c(*flat_c)
+
+    # Call the matmul function
+    liboperations.matmul(
+        flat_a, flat_b, flat_c,
+        widthA, heightA, widthB
+    )
+
+    # Convert the c type to a Python list
+    flat_c = list(flat_c)
+
+    # Reshape the flat output list back into a nested list
+    c = reshape(flat_c, (heightA, widthB))
+
+    return c
 
 def matrix_scalar_mul(scalar, matrix):
     return [[scalar * element for element in row] for row in matrix]

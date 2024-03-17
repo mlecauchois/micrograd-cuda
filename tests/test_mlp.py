@@ -20,6 +20,9 @@ def test_mlp_inference():
     assert round(out.data[0][0], 5) == first_value
 
 
+# TODO: use operators for the training loop
+
+
 def test_mlp_train():
     model = MLP.load("tests/data/mlp")
 

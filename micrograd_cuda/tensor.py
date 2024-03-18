@@ -24,7 +24,7 @@ class Tensor:
 
     def __init__(self, data, _children=(), _op="", label="", requires_grad=True, shape=None, device="cpu"):
         self.data = data  # Nested list on cpu, pointer to flat array on gpu
-        self.requires_grad = requires_grad
+        self._requires_grad = requires_grad
         # TODO: grad should be init on gpu if data is on gpu
         self.grad = Tensor(zeros_matrix_like(data), requires_grad=False) if self.requires_grad else None
         self._backward = lambda: None
@@ -207,7 +207,20 @@ class Tensor:
         for node in reversed(topo):
             node._backward()
 
+    @property   
+    def requires_grad(self):
+        return self._requires_grad
+    
+    @requires_grad.setter
+    def requires_grad(self, value: bool):
+        # If requires_grad is set to False, we should also delete the grad tensor to cleanup
+        if value == False:
+            self.grad = None
+        self._requires_grad = value
+    
     def __del__(self):
         if self.device == "cuda":
-            free_gpu_memory(self.data)
-            free_gpu_memory(self.grad.data)
+            if self.data is not None:
+                free_gpu_memory(self.data)
+            if self.grad is not None:
+                free_gpu_memory(self.grad.data)

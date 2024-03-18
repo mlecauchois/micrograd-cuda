@@ -15,14 +15,19 @@ class Layer:
         )
 
     def __call__(self, x):
-        bias = Tensor([[1.0 for _ in range(x.shape[1])]])
-        x_with_bias = x.concat(bias, axis=0)
+        bias_input = Tensor([[1.0 for _ in range(x.shape[1])]], requires_grad=False)
+        bias_input.to(x.device)
+        x_with_bias = x.concat(bias_input, axis=0)
         outs = self.w @ x_with_bias
         outs = outs.tanh()
         return outs
 
     def parameters(self):
         return [self.w]
+    
+    def to(self, device: str):
+        for parameter in self.parameters():
+            parameter.to(device)
 
 
 class MLP:
@@ -80,3 +85,7 @@ class MLP:
             layer.w.data = weights[layer.w.label]
 
         return model
+    
+    def to(self, device: str):
+        for parameter in self.parameters():
+            parameter.to(device)

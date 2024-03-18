@@ -1,6 +1,6 @@
 import ctypes
-from micrograd_cuda.operations_cpu import matrix_mul_cpu, matrix_scalar_mul_cpu, matrix_add_cpu, matrix_transpose_cpu, element_wise_mul_cpu, power_cpu, power_prime_cpu, tanh_cpu, tanh_prime_cpu, matrix_concat_cpu, summation_cpu
-from micrograd_cuda.operations_cuda import matrix_mul_cuda, tanh_cuda, tanh_prime_cuda, matrix_transpose_cuda, matrix_add_cuda, matrix_scalar_mul_cuda, element_wise_mul_cuda, power_cuda, power_prime_cuda, matrix_concat_cuda, summation_cuda
+from micrograd_cuda.operations_cpu import matrix_mul_cpu, matrix_scalar_mul_cpu, matrix_add_cpu, matrix_transpose_cpu, element_wise_mul_cpu, power_cpu, power_prime_cpu, tanh_cpu, tanh_prime_cpu, matrix_concat_cpu, summation_cpu, zeros_matrix_like_cpu, ones_matrix_like_cpu
+from micrograd_cuda.operations_cuda import matrix_mul_cuda, tanh_cuda, tanh_prime_cuda, matrix_transpose_cuda, matrix_add_cuda, matrix_scalar_mul_cuda, element_wise_mul_cuda, power_cuda, power_prime_cuda, matrix_concat_cuda, summation_cuda, zeros_matrix_like_cuda, ones_matrix_like_cuda
 
 # Load the shared library
 lib = ctypes.CDLL('./liboperations.so')
@@ -47,11 +47,17 @@ def to_device(data, device, original_shape=None):
     else:
         raise ValueError("Unsupported device or data type")
 
-def zeros_matrix_like(matrix):
-    return [[0 for _ in row] for row in matrix]
+def zeros_matrix_like(shape: tuple, device: str):
+    if device == "cpu":
+        return zeros_matrix_like_cpu(shape)
+    elif device == "cuda":
+        return zeros_matrix_like_cuda(shape)
 
-def ones_matrix_like(matrix):
-    return [[1 for _ in row] for row in matrix]
+def ones_matrix_like(shape: tuple, device: str):
+    if device == "cpu":
+        return ones_matrix_like_cpu(shape)
+    elif device == "cuda":
+        return ones_matrix_like_cuda(shape)
 
 def matrix_mul(matrix_a, matrix_b, matrix_a_shape, matrix_b_shape, device: str):
     if device == "cpu":

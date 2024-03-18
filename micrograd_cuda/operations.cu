@@ -241,3 +241,19 @@ extern "C" void summation_on_gpu(float *d_in, float *d_out, int n) {
     summation_kernel<<<1, 1>>>(d_in, d_out, n);
     cudaDeviceSynchronize();
 }
+
+// Add scalar
+
+__global__ void add_scalar_kernel(float scalar, float *in, float *out, int n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n) {
+        out[idx] = in[idx] + scalar;
+    }
+}
+
+extern "C" void add_scalar_on_gpu(float scalar, float *d_in, float *d_out, int n) {
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
+    add_scalar_kernel<<<blocksPerGrid, threadsPerBlock>>>(scalar, d_in, d_out, n);
+    cudaDeviceSynchronize();
+}

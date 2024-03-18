@@ -29,6 +29,11 @@ ys = [[1.0], [-1.0], [-1.0], [1.0]]
 xs_batch = Tensor(xs).T
 ys_batch = Tensor(ys).T
 
+# Move to device
+model.to("cuda")
+xs_batch.to("cuda")
+ys_batch.to("cuda")
+
 for k in range(epochs):
 
     # Forward pass
@@ -38,21 +43,23 @@ for k in range(epochs):
 
     # Backward pass
     for p in model.parameters():
-        p.grad = zeros_matrix_like(p.data)
+            p.grad.data = zeros_matrix_like(device=device, shape=p.shape)
+
     loss.backward()
 
     # Update
     for p in model.parameters():
-        p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad), p.data)
-
-    print(k, loss.data)
+            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device, shape=p.shape), p.data, device=p.device, shape=p.shape)
+    
+loss.to("cpu")
+print(loss.data)
 ```
 
 ## Roadmap
 
 - [x] Micrograd extension with basic 2D tensors and naïve matrix multiplication for MLP
 - [x] Batching
-- [ ] CUDA kernel for matrix multiplication
+- [x] CUDA kernel for matrix multiplication
 - [ ] Error handling
 - [ ] CUDA optimizations for matrix multiplication
 - [ ] >2D tensors, indexing and better tensor logic

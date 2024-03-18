@@ -15,6 +15,7 @@ lib.power_on_gpu.argtypes = [ctypes.c_void_p, ctypes.c_float, ctypes.c_void_p, c
 lib.power_prime_on_gpu.argtypes = [ctypes.c_void_p, ctypes.c_float, ctypes.c_void_p, ctypes.c_int]
 lib.matrix_concat_on_gpu.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
 lib.summation_on_gpu.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
+lib.add_scalar_on_gpu.argtypes = [ctypes.c_float, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
 
 
 def matrix_mul_cuda(d_a, d_b, a_shape, b_shape):
@@ -75,3 +76,15 @@ def summation_cuda(d_a, a_shape):
     lib.summation_on_gpu(d_a, d_c, a_shape[0] * a_shape[1])
     return d_c
 
+def zeros_matrix_like_cuda(shape):
+    # TODO: accelerate this
+    d_c = lib.allocate_on_gpu(shape[0] * shape[1])
+    lib.scalar_mul_on_gpu(0.0, d_c, d_c, shape[0] * shape[1])
+    return d_c
+
+def ones_matrix_like_cuda(shape):
+    # TODO: accelerate this
+    d_c = lib.allocate_on_gpu(shape[0] * shape[1])
+    lib.scalar_mul_on_gpu(0.0, d_c, d_c, shape[0] * shape[1])
+    lib.add_scalar_on_gpu(1.0, d_c, d_c, shape[0] * shape[1])
+    return d_c

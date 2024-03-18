@@ -15,7 +15,7 @@ class Layer:
         )
 
     def __call__(self, x):
-        bias_input = Tensor([[1.0 for _ in range(x.shape[1])]], requires_grad=False)
+        bias_input = Tensor([[1.0 for _ in range(x.shape[1])]])
         bias_input.to(x.device)
         x_with_bias = x.concat(bias_input, axis=0)
         outs = self.w @ x_with_bias
@@ -89,3 +89,9 @@ class MLP:
     def to(self, device: str):
         for parameter in self.parameters():
             parameter.to(device)
+
+    def copy(self):
+        model = MLP(self.layers[0].w.shape[1] - 1, [layer.w.shape[0] for layer in self.layers])
+        for i, layer in enumerate(self.layers):
+            model.layers[i].w.data = layer.w.data.copy()
+        return model

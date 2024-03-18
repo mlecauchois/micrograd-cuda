@@ -67,3 +67,9 @@ def matrix_concat_cpu(matrix_a, matrix_b):
 
 def summation_cpu(matrix):
     return [[sum([sum(row) for row in matrix])]]
+
+def zeros_matrix_like_cpu(shape):
+    return [[0 for _ in range(shape[1])] for _ in range(shape[0])]
+
+def ones_matrix_like_cpu(shape):
+    return [[1 for _ in range(shape[1])] for _ in range(shape[0])]

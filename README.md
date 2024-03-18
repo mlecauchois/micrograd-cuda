@@ -30,15 +30,15 @@ epochs = 1
 device = "cuda"
 
 # Data
-xs = [[2.0, 3.0, -1.0], [3.0, -1.0, 0.5], [0.5, 1.0, 1.0], [1.0, 1.0, -1.0]]
-ys = [[1.0], [-1.0], [-1.0], [1.0]]
-xs_batch = Tensor(xs).T
-ys_batch = Tensor(ys).T
+xs_batch = Tensor([[random.random() for _ in range(300)] for _ in range(100)]).T
+ys_batch = Tensor([[random.random()] for _ in range(100)]).T
 
 # Move to device
 model.to(device)
 xs_batch.to(device)
 ys_batch.to(device)
+
+start = time.time()
 
 for k in range(epochs):
 
@@ -49,12 +49,14 @@ for k in range(epochs):
 
     # Backward pass
     for p in model.parameters():
-        p.grad = zeros_matrix_like(p.data)
+        p.grad.data = zeros_matrix_like(device=device, shape=p.shape)
     loss.backward()
 
     # Update
     for p in model.parameters():
             p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device, shape=p.shape), p.data, device=p.device, shape=p.shape)
+
+print(f"Elapsed: {time.time() - start:.2f} sec")
     
 loss.to("cpu")
 print(loss.data)

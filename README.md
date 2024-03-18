@@ -36,9 +36,9 @@ xs_batch = Tensor(xs).T
 ys_batch = Tensor(ys).T
 
 # Move to device
-model.to("cuda")
-xs_batch.to("cuda")
-ys_batch.to("cuda")
+model.to(device)
+xs_batch.to(device)
+ys_batch.to(device)
 
 for k in range(epochs):
 

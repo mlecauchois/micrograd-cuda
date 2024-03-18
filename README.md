@@ -53,6 +53,7 @@ for k in range(epochs):
 - [x] Micrograd extension with basic 2D tensors and naïve matrix multiplication for MLP
 - [x] Batching
 - [ ] CUDA kernel for matrix multiplication
+- [ ] Error handling
 - [ ] CUDA optimizations for matrix multiplication
 - [ ] >2D tensors, indexing and better tensor logic
 - [ ] MNIST with MLP

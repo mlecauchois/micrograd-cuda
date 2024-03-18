@@ -66,4 +66,4 @@ def matrix_concat_cpu(matrix_a, matrix_b):
     return matrix_a + matrix_b
 
 def summation_cpu(matrix):
-    return sum([sum(row) for row in matrix])
+    return [[sum([sum(row) for row in matrix])]]

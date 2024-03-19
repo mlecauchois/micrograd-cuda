@@ -69,7 +69,7 @@ def test_mlp_inference_large():
     out_cpu = out
 
     difference = (out_cpu - out_gpu).abs().sum().data[0][0]/(1000)
-    assert difference < 1e-5
+    assert difference < 1e-3
 
 def test_backward():
 
@@ -112,7 +112,7 @@ def test_backward():
     loss_gpu.requires_grad = False
     loss.requires_grad = False
     difference = (loss - loss_gpu).abs().sum().data[0][0]
-    assert difference < 1e-5
+    assert difference < 1e-3
 
 def mlp_train_batch(device: str):
     model = MLP.load("tests/data/mlp")

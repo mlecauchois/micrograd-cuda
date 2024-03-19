@@ -63,7 +63,9 @@ loss.to("cpu")
 print(loss.data)
 ```
 
-This code yields up to x1000 speedup on T4 GPU compared to CPU.
+## Speedup
+
+![](speedup.jpg)
 
 ## Roadmap
 

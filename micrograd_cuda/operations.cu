@@ -22,6 +22,10 @@ extern "C" void free_gpu_memory(float* d_ptr) {
     cudaFree(d_ptr);
 }
 
+extern "C" void copy_on_gpu(float* dst, const float* src, int size) {
+    cudaMemcpy(dst, src, size * sizeof(float), cudaMemcpyDeviceToDevice);
+}
+
 // Matrix multiplication
 
 __global__ void matmul_kernel(float *a, float *b, float *c, int a_rows, int a_cols, int b_cols) {

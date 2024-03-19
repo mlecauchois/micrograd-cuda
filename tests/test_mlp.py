@@ -81,7 +81,7 @@ def test_backward():
     model.to("cuda")
 
     for p in model.parameters():
-        p.grad.data, _ = Operations("cuda").zeros_matrix_like(shape=p.shape)
+        p.zero_grad()
 
     out = model(x_test_backward)
     y = Tensor([[1.0]])
@@ -99,7 +99,7 @@ def test_backward():
     model.to("cpu")
 
     for p in model.parameters():
-        p.grad.data, _ = Operations("cpu").zeros_matrix_like(shape=p.shape)
+        p.zero_grad()
 
     out = model(x_test_backward)
     y = Tensor([[1.0]])
@@ -131,13 +131,14 @@ def mlp_train_batch(device: str):
 
         # backward pass
         for p in model.parameters():
-            p.grad.data, _ = Operations(device).zeros_matrix_like(shape=p.shape)
+            p.zero_grad()
 
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data, _ = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)
+            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)[0]
+
     print(f"Elapsed: {time.time() - start:.2f} sec")
     loss.to("cpu")
     assert round(loss.data[0][0], 5) == last_loss
@@ -154,7 +155,7 @@ def mlp_train_batch_large(device: str, model, xs_batch_large, ys_batch_large):
     
     start = time.time()
 
-    for k in range(1):
+    for k in range(2):
 
         # forward pass
         ypred = model(xs_batch_large)
@@ -163,13 +164,13 @@ def mlp_train_batch_large(device: str, model, xs_batch_large, ys_batch_large):
 
         # backward pass
         for p in model.parameters():
-            p.grad.data, _ = Operations(device).zeros_matrix_like(shape=p.shape)
+            p.zero_grad()
 
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data, _ = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)
+            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)[0]
 
     print(f"Elapsed: {time.time() - start:.2f} sec")
 

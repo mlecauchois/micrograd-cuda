@@ -50,10 +50,22 @@ class Tensor:
         out._backward = _backward
         return out
 
-    def __rmatmul__(self, other):
-        return self @ other
+    def scalar_mul(self, scalar):
+        out_data, out_shape = Operations(self.device).matrix_scalar_mul(scalar, self.data, shape=self.shape)
+        out = Tensor(data=out_data, children=(self,), device=self.device, requires_grad=self.requires_grad, shape=out_shape)
+
+        def _backward():
+            new_self_grad_data, new_self_grad_shape = Operations(self.device).matrix_scalar_mul(scalar, out.grad.data, shape=out.shape)
+            self.grad += Tensor(data=new_self_grad_data, device=self.device, shape=new_self_grad_shape)
+
+        out._backward = _backward
+        return out
 
     def __mul__(self, other):
+
+        if isinstance(other, (int, float)):
+            return self.scalar_mul(other)
+
         other = other if isinstance(other, Tensor) else Tensor(data=other, device=self.device)
         out_data, out_shape = Operations(self.device).element_wise_mul(self.data, other.data, shape=self.shape)
         out = Tensor(data=out_data, children=(self, other), device=self.device, requires_grad=self.requires_grad, shape=out_shape)
@@ -222,6 +234,10 @@ class Tensor:
         if value == False:
             self.grad = None
         self._requires_grad = value
+
+    def zero_grad(self):
+        if self.grad is not None:
+            self.grad.data, _ = Operations(self.device).zeros_matrix_like(shape=self.shape)
     
     def __del__(self):
         if self.device == "cuda":

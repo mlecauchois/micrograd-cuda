@@ -20,6 +20,7 @@ lib.move_to_gpu.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_int]
 lib.move_to_gpu.restype = ctypes.POINTER(ctypes.c_float)
 lib.move_to_cpu.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.c_int]
 lib.indexing_2d_on_gpu.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+lib.copy_on_gpu.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
 
 
 def calculate_list_shape(data):
@@ -40,6 +41,13 @@ def free_gpu_memory(data):
     if not isinstance(data, ctypes.POINTER(ctypes.c_float)):
         data = ctypes.cast(data, ctypes.POINTER(ctypes.c_float))
     lib.free_gpu_memory(data)
+
+def copy_on_gpu(data, shape):
+    data = ctypes.cast(data, ctypes.POINTER(ctypes.c_float))
+    size = shape[0] * shape[1]
+    out = lib.allocate_on_gpu(size)
+    lib.copy_on_gpu(out, data, size)
+    return out
 
 class OperationsBase:
     pass

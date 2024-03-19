@@ -22,7 +22,7 @@ import time
 
 from micrograd_cuda.mlp import MLP
 from micrograd_cuda.tensor import Tensor
-from micrograd_cuda.tensor import matrix_add, matrix_scalar_mul, zeros_matrix_like
+from micrograd_cuda.operations import Operations
 
 # Model
 model = MLP(300, [300, 300, 1])
@@ -49,12 +49,12 @@ for k in range(epochs):
 
     # Backward pass
     for p in model.parameters():
-        p.grad.data = zeros_matrix_like(device=device, shape=p.shape)
+        p.grad.data = Operations(p.device).zeros_matrix_like(shape=p.shape)
     loss.backward()
 
     # Update
     for p in model.parameters():
-            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device, shape=p.shape), p.data, device=p.device, shape=p.shape)
+            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape), p.data, shape=p.shape)
 
 print(f"Elapsed: {time.time() - start:.2f} sec")
     

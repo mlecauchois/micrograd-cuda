@@ -3,7 +3,7 @@ import random
 
 from micrograd_cuda.mlp import MLP
 from micrograd_cuda.tensor import Tensor
-from micrograd_cuda.tensor import matrix_add, matrix_scalar_mul, zeros_matrix_like
+from micrograd_cuda.operations import Operations
 
 xs = [[2.0, 3.0, -1.0], [3.0, -1.0, 0.5], [0.5, 1.0, 1.0], [1.0, 1.0, -1.0]]
 ys = [[1.0], [-1.0], [-1.0], [1.0]]
@@ -81,7 +81,7 @@ def test_backward():
     model.to("cuda")
 
     for p in model.parameters():
-        p.grad.data = zeros_matrix_like(device="cuda", shape=p.shape)
+        p.grad.data = Operations("cuda").zeros_matrix_like(shape=p.shape)
 
     out = model(x_test_backward)
     y = Tensor([[1.0]])
@@ -99,7 +99,7 @@ def test_backward():
     model.to("cpu")
 
     for p in model.parameters():
-        p.grad.data = zeros_matrix_like(device="cpu", shape=p.shape)
+        p.grad.data = Operations("cpu").zeros_matrix_like(shape=p.shape)
 
     out = model(x_test_backward)
     y = Tensor([[1.0]])
@@ -131,13 +131,13 @@ def mlp_train_batch(device: str):
 
         # backward pass
         for p in model.parameters():
-            p.grad.data = zeros_matrix_like(device=device, shape=p.shape)
+            p.grad.data = Operations(device).zeros_matrix_like(shape=p.shape)
 
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device, shape=p.shape), p.data, device=p.device, shape=p.shape)
+            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape), p.data, shape=p.shape)
     print(f"Elapsed: {time.time() - start:.2f} sec")
     loss.to("cpu")
     assert round(loss.data[0][0], 5) == last_loss
@@ -163,13 +163,13 @@ def mlp_train_batch_large(device: str, model, xs_batch_large, ys_batch_large):
 
         # backward pass
         for p in model.parameters():
-            p.grad.data = zeros_matrix_like(device=device, shape=p.shape)
+            p.grad.data = Operations(device).zeros_matrix_like(shape=p.shape)
 
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device, shape=p.shape), p.data, device=p.device, shape=p.shape)
+            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape), p.data, shape=p.shape)
 
     print(f"Elapsed: {time.time() - start:.2f} sec")
 

@@ -42,13 +42,6 @@ def free_gpu_memory(data):
         data = ctypes.cast(data, ctypes.POINTER(ctypes.c_float))
     lib.free_gpu_memory(data)
 
-def copy_on_gpu(data, shape):
-    data = ctypes.cast(data, ctypes.POINTER(ctypes.c_float))
-    size = shape[0] * shape[1]
-    out = lib.allocate_on_gpu(size)
-    lib.copy_on_gpu(out, data, size)
-    return out
-
 class OperationsBase:
     pass
 
@@ -153,6 +146,14 @@ class OperationsCuda(OperationsBase):
         out = lib.allocate_on_gpu(size * ctypes.sizeof(ctypes.c_float))
         lib.indexing_2d_on_gpu(matrix, out, shape[0], shape[1], output_rows, output_cols, row_slice_start, col_slice_start)
         return out, (output_rows, output_cols)
+    
+    @staticmethod
+    def copy(data, shape):
+        data = ctypes.cast(data, ctypes.POINTER(ctypes.c_float))
+        size = shape[0] * shape[1]
+        out = lib.allocate_on_gpu(size)
+        lib.copy_on_gpu(out, data, size)
+        return out, shape
 
 class OperationsCpu(OperationsBase):
 
@@ -266,6 +267,10 @@ class OperationsCpu(OperationsBase):
     @staticmethod
     def indexing_2d(matrix, output_rows, output_cols, row_slice_start, col_slice_start, shape):
         return [row[col_slice_start:col_slice_start + output_cols] for row in matrix[row_slice_start:row_slice_start + output_rows]], (output_rows, output_cols)
+
+    @staticmethod
+    def copy(data, shape):
+        return data, shape
 
 class Operations:
 

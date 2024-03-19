@@ -55,7 +55,7 @@ for k in range(epochs):
     
     # Update
     for p in model.parameters():
-        p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)[0]
+        p.data = (-0.1 * p.grad + p).data_copy()
 
 print(f"Elapsed: {time.time() - start:.2f} sec")
     
@@ -75,7 +75,7 @@ The codebase is still WIP with some rough spots, especially around CUDA Tensor d
 - [x] Batching
 - [x] CUDA kernel for matrix multiplication
 - [x] Less verbose code
-- [ ] Pointers, no_grad logic, streamlining update rule
+- [ ] Error handling
 - [ ] CUDA optimizations
 - [ ] >2D tensors
 

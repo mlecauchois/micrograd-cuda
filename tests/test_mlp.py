@@ -137,7 +137,7 @@ def mlp_train_batch(device: str):
 
         # update
         for p in model.parameters():
-            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)[0]
+            p.data = (-0.1 * p.grad + p).data_copy()
 
     print(f"Elapsed: {time.time() - start:.2f} sec")
     loss.to("cpu")
@@ -170,7 +170,7 @@ def mlp_train_batch_large(device: str, model, xs_batch_large, ys_batch_large):
 
         # update
         for p in model.parameters():
-            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)[0]
+            p.data = (-0.1 * p.grad + p).data_copy()
 
     print(f"Elapsed: {time.time() - start:.2f} sec")
 

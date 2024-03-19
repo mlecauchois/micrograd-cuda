@@ -238,6 +238,9 @@ class Tensor:
     def zero_grad(self):
         if self.grad is not None:
             self.grad.data, _ = Operations(self.device).zeros_matrix_like(shape=self.shape)
+
+    def data_copy(self):
+        return Operations(self.device).copy(self.data, self.shape)[0]
     
     def __del__(self):
         if self.device == "cuda":

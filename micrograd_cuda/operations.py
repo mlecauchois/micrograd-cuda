@@ -142,20 +142,20 @@ class OperationsCuda(OperationsBase):
 class OperationsCpu(OperationsBase):
 
     @staticmethod
-    def tanh(x, *args, **kwargs):
+    def tanh(x, shape):
         return [[math.tanh(x_ij) for x_ij in row] for row in x]
 
     @staticmethod
-    def tanh_prime(x, *args, **kwargs):
-        t = OperationsCpu.tanh(x)
+    def tanh_prime(x, shape):
+        t = OperationsCpu.tanh(x, shape)
         return [[1 - t_ij**2 for t_ij in row] for row in t]
 
     @staticmethod
-    def matrix_mul(matrix_a, matrix_b, *args, **kwargs):
-        rows_a = len(matrix_a)
-        cols_a = len(matrix_a[0])
-        rows_b = len(matrix_b)
-        cols_b = len(matrix_b[0])
+    def matrix_mul(matrix_a, matrix_b, a_shape, b_shape):
+        rows_a = a_shape[0]
+        cols_a = a_shape[1]
+        rows_b = b_shape[0]
+        cols_b = b_shape[1]
 
         if cols_a != rows_b:
             raise ValueError(
@@ -172,12 +172,12 @@ class OperationsCpu(OperationsBase):
         return result
 
     @staticmethod
-    def matrix_scalar_mul(scalar, matrix, *args, **kwargs):
+    def matrix_scalar_mul(scalar, matrix, shape):
         return [[scalar * element for element in row] for row in matrix]
 
 
     @staticmethod
-    def matrix_add(matrix_a, matrix_b, *args, **kwargs):
+    def matrix_add(matrix_a, matrix_b, shape):
         if len(matrix_a) != len(matrix_b) or len(matrix_a[0]) != len(matrix_b[0]):
             raise ValueError("Matrices are not of the same dimensions.")
 
@@ -188,11 +188,11 @@ class OperationsCpu(OperationsBase):
         return result
 
     @staticmethod
-    def matrix_transpose(matrix, *args, **kwargs):
+    def matrix_transpose(matrix, shape):
         return [[matrix[j][i] for j in range(len(matrix))] for i in range(len(matrix[0]))]
 
     @staticmethod
-    def element_wise_mul(matrix_a, matrix_b, *args, **kwargs):
+    def element_wise_mul(matrix_a, matrix_b, shape):
         if len(matrix_a) != len(matrix_b) or len(matrix_a[0]) != len(matrix_b[0]):
             raise ValueError(
                 "Matrices must be of the same size for element-wise multiplication."
@@ -203,27 +203,27 @@ class OperationsCpu(OperationsBase):
         ]
 
     @staticmethod
-    def power(matrix, exponent, *args, **kwargs):
+    def power(matrix, exponent, shape):
         return [[x_ij**exponent for x_ij in row] for row in matrix]
 
     @staticmethod
-    def power_prime(matrix, exponent, *args, **kwargs):
+    def power_prime(matrix, exponent, shape):
         return [[exponent * (x_ij**(exponent - 1)) for x_ij in row] for row in matrix]
 
     @staticmethod
-    def matrix_concat(matrix_a, matrix_b, *args, **kwargs):
+    def matrix_concat(matrix_a, matrix_b, a_shape, b_shape):
         return matrix_a + matrix_b
 
     @staticmethod
-    def summation(matrix, *args, **kwargs):
+    def summation(matrix, shape):
         return [[sum([sum(row) for row in matrix])]]
 
     @staticmethod
-    def zeros_matrix_like(shape, *args, **kwargs):
+    def zeros_matrix_like(shape):
         return [[0 for _ in range(shape[1])] for _ in range(shape[0])]
 
     @staticmethod
-    def ones_matrix_like(shape, *args, **kwargs):
+    def ones_matrix_like(shape):
         return [[1 for _ in range(shape[1])] for _ in range(shape[0])]
 
     @staticmethod

@@ -31,8 +31,8 @@ class OperationsBase:
         return tuple(shape)
 
     @staticmethod
-    def flatten_list(nested_list):
-        return [item for sublist in nested_list for item in sublist]
+    def flatten_list(data):
+        return [item for sublist in data for item in sublist]
 
     @staticmethod
     def reshape_to_nested_list(flat_array, original_shape):
@@ -40,122 +40,121 @@ class OperationsBase:
         return [list(flat_array[i:i + num_columns]) for i in range(0, len(flat_array), num_columns)]
 
     @staticmethod
-    def free_gpu_memory(d_ptr):
-        if not isinstance(d_ptr, ctypes.POINTER(ctypes.c_float)):
-            d_ptr = ctypes.cast(d_ptr, ctypes.POINTER(ctypes.c_float))
-        lib.free_gpu_memory(d_ptr)
+    def free_gpu_memory(data):
+        if not isinstance(data, ctypes.POINTER(ctypes.c_float)):
+            data = ctypes.cast(data, ctypes.POINTER(ctypes.c_float))
+        lib.free_gpu_memory(data)
 
 class OperationsCuda(OperationsBase):
     
     @staticmethod
-    def matrix_mul(d_a, d_b, a_shape, b_shape):
-        c_size = a_shape[0] * b_shape[1]
-        d_c = lib.allocate_on_gpu(c_size)
-        lib.matmul_on_gpu(d_a, d_b, d_c, a_shape[0], a_shape[1], b_shape[1])
-        return d_c
+    def matrix_mul(matrix_a, matrix_b, shape_a, shape_b):
+        size = shape_a[0] * shape_b[1]
+        out = lib.allocate_on_gpu(size)
+        lib.matmul_on_gpu(matrix_a, matrix_b, out, shape_a[0], shape_a[1], shape_b[1])
+        return out
 
     @staticmethod
     def tanh(matrix, shape):
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.tanh_on_gpu(matrix, d_c, shape[0] * shape[1])
-        return d_c
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.tanh_on_gpu(matrix, out, shape[0] * shape[1])
+        return out
 
     @staticmethod
     def tanh_prime(matrix, shape):
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.tanh_prime_on_gpu(matrix, d_c, shape[0] * shape[1])
-        return d_c
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.tanh_prime_on_gpu(matrix, out, shape[0] * shape[1])
+        return out
 
     @staticmethod
     def matrix_transpose(matrix, shape):
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.transpose_on_gpu(matrix, d_c, shape[0], shape[1])
-        return d_c
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.transpose_on_gpu(matrix, out, shape[0], shape[1])
+        return out
 
     @staticmethod
-    def matrix_add(d_a, d_b, shape):
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.add_on_gpu(d_a, d_b, d_c, shape[0] * shape[1])
-        return d_c
+    def matrix_add(matrix_a, matrix_b, shape):
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.add_on_gpu(matrix_a, matrix_b, out, shape[0] * shape[1])
+        return out
 
     @staticmethod
     def matrix_scalar_mul(scalar, matrix, shape):
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.scalar_mul_on_gpu(scalar, matrix, d_c, shape[0] * shape[1])
-        return d_c
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.scalar_mul_on_gpu(scalar, matrix, out, shape[0] * shape[1])
+        return out
 
     @staticmethod
-    def element_wise_mul(d_a, d_b, shape):
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.element_wise_mul_on_gpu(d_a, d_b, d_c, shape[0] * shape[1])
-        return d_c
+    def element_wise_mul(matrix_a, matrix_b, shape):
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.element_wise_mul_on_gpu(matrix_a, matrix_b, out, shape[0] * shape[1])
+        return out
 
     @staticmethod
     def power(matrix, exponent, shape):
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.power_on_gpu(matrix, exponent, d_c, shape[0] * shape[1])
-        return d_c
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.power_on_gpu(matrix, exponent, out, shape[0] * shape[1])
+        return out
 
     @staticmethod
     def power_prime(matrix, exponent, shape):
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.power_prime_on_gpu(matrix, exponent, d_c, shape[0] * shape[1])
-        return d_c
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.power_prime_on_gpu(matrix, exponent, out, shape[0] * shape[1])
+        return out
 
     @staticmethod
-    def matrix_concat(d_a, d_b, a_shape, b_shape):
+    def matrix_concat(matrix_a, matrix_b, shape_a, shape_b):
         # TODO: any axis concat
-        d_c = lib.allocate_on_gpu((a_shape[0] + b_shape[0]) * a_shape[1])
-        lib.matrix_concat_on_gpu(d_a, d_b, d_c, a_shape[0], a_shape[1], b_shape[0], b_shape[1])
-        return d_c
+        out = lib.allocate_on_gpu((shape_a[0] + shape_b[0]) * shape_a[1])
+        lib.matrix_concat_on_gpu(matrix_a, matrix_b, out, shape_a[0], shape_a[1], shape_b[0], shape_b[1])
+        return out
 
     @staticmethod
     def summation(matrix, shape):
-        c_size = 1
-        d_c = lib.allocate_on_gpu(c_size)
-        lib.summation_on_gpu(matrix, d_c, shape[0] * shape[1])
-        return d_c
+        out = lib.allocate_on_gpu(1)
+        lib.summation_on_gpu(matrix, out, shape[0] * shape[1])
+        return out
 
     @staticmethod
     def zeros_matrix_like(shape):
         # TODO: accelerate this
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.scalar_mul_on_gpu(0.0, d_c, d_c, shape[0] * shape[1])
-        return d_c
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.scalar_mul_on_gpu(0.0, out, out, shape[0] * shape[1])
+        return out
 
     @staticmethod
     def ones_matrix_like(shape):
         # TODO: accelerate this
-        d_c = lib.allocate_on_gpu(shape[0] * shape[1])
-        lib.scalar_mul_on_gpu(0.0, d_c, d_c, shape[0] * shape[1])
-        lib.add_scalar_on_gpu(1.0, d_c, d_c, shape[0] * shape[1])
-        return d_c
+        out = lib.allocate_on_gpu(shape[0] * shape[1])
+        lib.scalar_mul_on_gpu(0.0, out, out, shape[0] * shape[1])
+        lib.add_scalar_on_gpu(1.0, out, out, shape[0] * shape[1])
+        return out
     
     @staticmethod
     def to_device(data, original_shape=None):
         flat_data = OperationsCuda.flatten_list(data)
         array_type = ctypes.c_float * len(flat_data) # Create array type
         data_ctypes = array_type(*flat_data) # Instantiate array with data
-        d_data = lib.move_to_gpu(data_ctypes, data_ctypes._length_)
-        return d_data
+        out = lib.move_to_gpu(data_ctypes, data_ctypes._length_)
+        return out
 
 class OperationsCpu(OperationsBase):
 
     @staticmethod
-    def tanh(x, shape):
-        return [[math.tanh(x_ij) for x_ij in row] for row in x]
+    def tanh(matrix, shape):
+        return [[math.tanh(x_ij) for x_ij in row] for row in matrix]
 
     @staticmethod
-    def tanh_prime(x, shape):
-        t = OperationsCpu.tanh(x, shape)
+    def tanh_prime(matrix, shape):
+        t = OperationsCpu.tanh(matrix, shape)
         return [[1 - t_ij**2 for t_ij in row] for row in t]
 
     @staticmethod
-    def matrix_mul(matrix_a, matrix_b, a_shape, b_shape):
-        rows_a = a_shape[0]
-        cols_a = a_shape[1]
-        rows_b = b_shape[0]
-        cols_b = b_shape[1]
+    def matrix_mul(matrix_a, matrix_b, shape_a, shape_b):
+        rows_a = shape_a[0]
+        cols_a = shape_a[1]
+        rows_b = shape_b[0]
+        cols_b = shape_b[1]
 
         if cols_a != rows_b:
             raise ValueError(
@@ -211,7 +210,7 @@ class OperationsCpu(OperationsBase):
         return [[exponent * (x_ij**(exponent - 1)) for x_ij in row] for row in matrix]
 
     @staticmethod
-    def matrix_concat(matrix_a, matrix_b, a_shape, b_shape):
+    def matrix_concat(matrix_a, matrix_b, shape_a, shape_b):
         return matrix_a + matrix_b
 
     @staticmethod

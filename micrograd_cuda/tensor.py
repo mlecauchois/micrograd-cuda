@@ -43,10 +43,10 @@ class Tensor:
 
         def _backward():
             other_transpose_data = Operations(self.device).matrix_transpose(other.data, shape=other.shape)
-            new_self_grad_data = Operations(self.device).matrix_mul(out.grad.data, other_transpose_data, a_shape=out.grad.shape, b_shape=(other.shape[1], other.shape[0]))
+            new_self_grad_data = Operations(self.device).matrix_mul(out.grad.data, other_transpose_data, shape_a=out.grad.shape, shape_b=(other.shape[1], other.shape[0]))
             self.grad += Tensor(data=new_self_grad_data, device=self.device, shape=self.grad.shape)
             self_transpose_data = Operations(self.device).matrix_transpose(self.data, shape=self.shape)
-            new_other_grad_data = Operations(self.device).matrix_mul(self_transpose_data, out.grad.data, a_shape=(self.shape[1], self.shape[0]), b_shape=out.grad.shape)
+            new_other_grad_data = Operations(self.device).matrix_mul(self_transpose_data, out.grad.data, shape_a=(self.shape[1], self.shape[0]), shape_b=out.grad.shape)
             other.grad += Tensor(data=new_other_grad_data, device=self.device, shape=other.grad.shape)
         out._backward = _backward
         return out
@@ -156,7 +156,7 @@ class Tensor:
                 "Concatenation along this axis is not implemented."
             )
 
-        out = Tensor(data=Operations(self.device).matrix_concat(self.data, other.data, a_shape=self.shape, b_shape=other.shape), children=(self, other), device=self.device, requires_grad=self.requires_grad, shape=(self.shape[0] + other.shape[0], self.shape[1]))
+        out = Tensor(data=Operations(self.device).matrix_concat(self.data, other.data, shape_a=self.shape, shape_b=other.shape), children=(self, other), device=self.device, requires_grad=self.requires_grad, shape=(self.shape[0] + other.shape[0], self.shape[1]))
 
         # TODO: fix grad operations
         def _backward():

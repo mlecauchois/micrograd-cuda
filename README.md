@@ -22,16 +22,16 @@ import time
 
 from micrograd_cuda.mlp import MLP
 from micrograd_cuda.tensor import Tensor
-from micrograd_cuda.tensor import matrix_add, matrix_scalar_mul, zeros_matrix_like
+from micrograd_cuda.operations import Operations
 
 # Model
-model = MLP(300, [300, 300, 1])
-epochs = 1
-device = "cuda"
+model = MLP(100, [100, 100, 1])
+epochs = 20
+device = "cpu"
 
 # Data
-xs_batch = Tensor([[random.random() for _ in range(300)] for _ in range(100)]).T
-ys_batch = Tensor([[random.random()] for _ in range(100)]).T
+xs_batch = Tensor([[random.choice([-1, 1]) for _ in range(100)] for _ in range(10)]).T
+ys_batch = Tensor([[random.choice([-1, 1])] for _ in range(10)]).T
 
 # Move to device
 model.to(device)
@@ -49,12 +49,13 @@ for k in range(epochs):
 
     # Backward pass
     for p in model.parameters():
-        p.grad.data = zeros_matrix_like(device=device, shape=p.shape)
+        p.zero_grad()
+        
     loss.backward()
-
+    
     # Update
     for p in model.parameters():
-            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device, shape=p.shape), p.data, device=p.device, shape=p.shape)
+        p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)[0]
 
 print(f"Elapsed: {time.time() - start:.2f} sec")
     
@@ -62,21 +63,21 @@ loss.to("cpu")
 print(loss.data)
 ```
 
-This code yields up to x1000 speedup on T4 GPU compared to CPU.
+## Speedup
+
+![](speedup.jpg)
 
 ## Roadmap
+
+The codebase is still WIP with some rough spots, especially around CUDA Tensor data manipulation and copying.
 
 - [x] Micrograd extension with basic 2D tensors and naïve matrix multiplication for MLP
 - [x] Batching
 - [x] CUDA kernel for matrix multiplication
-- [ ] Less verbose code and error handling
-- [ ] CUDA optimizations for matrix multiplication
-- [ ] >2D tensors, indexing and better tensor logic
-- [ ] MNIST with MLP
-- [ ] Blogpost
-- [ ] ConvNet implementation and CUDA kernel
-- [ ] MNIST with ConvNet
-- [ ] Transformers? Efficient attention CUDA kernel?
+- [x] Less verbose code
+- [ ] Pointers, no_grad logic, streamlining update rule
+- [ ] CUDA optimizations
+- [ ] >2D tensors
 
 ## Running tests
 

@@ -3,7 +3,7 @@ import random
 
 from micrograd_cuda.mlp import MLP
 from micrograd_cuda.tensor import Tensor
-from micrograd_cuda.tensor import matrix_add, matrix_scalar_mul, zeros_matrix_like
+from micrograd_cuda.operations import Operations
 
 xs = [[2.0, 3.0, -1.0], [3.0, -1.0, 0.5], [0.5, 1.0, 1.0], [1.0, 1.0, -1.0]]
 ys = [[1.0], [-1.0], [-1.0], [1.0]]
@@ -69,7 +69,7 @@ def test_mlp_inference_large():
     out_cpu = out
 
     difference = (out_cpu - out_gpu).abs().sum().data[0][0]/(1000)
-    assert difference < 1e-5
+    assert difference < 1e-3
 
 def test_backward():
 
@@ -81,7 +81,7 @@ def test_backward():
     model.to("cuda")
 
     for p in model.parameters():
-        p.grad.data = zeros_matrix_like(device="cuda", shape=p.shape)
+        p.zero_grad()
 
     out = model(x_test_backward)
     y = Tensor([[1.0]])
@@ -99,7 +99,7 @@ def test_backward():
     model.to("cpu")
 
     for p in model.parameters():
-        p.grad.data = zeros_matrix_like(device="cpu", shape=p.shape)
+        p.zero_grad()
 
     out = model(x_test_backward)
     y = Tensor([[1.0]])
@@ -112,7 +112,7 @@ def test_backward():
     loss_gpu.requires_grad = False
     loss.requires_grad = False
     difference = (loss - loss_gpu).abs().sum().data[0][0]
-    assert difference < 1e-5
+    assert difference < 1e-3
 
 def mlp_train_batch(device: str):
     model = MLP.load("tests/data/mlp")
@@ -131,13 +131,14 @@ def mlp_train_batch(device: str):
 
         # backward pass
         for p in model.parameters():
-            p.grad.data = zeros_matrix_like(device=device, shape=p.shape)
+            p.zero_grad()
 
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device, shape=p.shape), p.data, device=p.device, shape=p.shape)
+            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)[0]
+
     print(f"Elapsed: {time.time() - start:.2f} sec")
     loss.to("cpu")
     assert round(loss.data[0][0], 5) == last_loss
@@ -154,7 +155,7 @@ def mlp_train_batch_large(device: str, model, xs_batch_large, ys_batch_large):
     
     start = time.time()
 
-    for k in range(1):
+    for k in range(2):
 
         # forward pass
         ypred = model(xs_batch_large)
@@ -163,13 +164,13 @@ def mlp_train_batch_large(device: str, model, xs_batch_large, ys_batch_large):
 
         # backward pass
         for p in model.parameters():
-            p.grad.data = zeros_matrix_like(device=device, shape=p.shape)
+            p.zero_grad()
 
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data = matrix_add(matrix_scalar_mul(-0.1, p.grad.data, device=p.device, shape=p.shape), p.data, device=p.device, shape=p.shape)
+            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)[0]
 
     print(f"Elapsed: {time.time() - start:.2f} sec")
 

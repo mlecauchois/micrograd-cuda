@@ -22,6 +22,10 @@ extern "C" void free_gpu_memory(float* d_ptr) {
     cudaFree(d_ptr);
 }
 
+extern "C" void copy_on_gpu(float* dst, const float* src, int size) {
+    cudaMemcpy(dst, src, size * sizeof(float), cudaMemcpyDeviceToDevice);
+}
+
 // Matrix multiplication
 
 __global__ void matmul_kernel(float *a, float *b, float *c, int a_rows, int a_cols, int b_cols) {
@@ -103,21 +107,42 @@ extern "C" void transpose_on_gpu(float *d_in, float *d_out, int rows, int cols) 
 
 // Matrix addition
 
-__global__ void add_kernel(float *a, float *b, float *c, int n) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < n) {
-        c[idx] = a[idx] + b[idx];
+__global__ void add_kernel(float *a, float *b, float *c, int a_rows, int a_cols, int b_rows, int b_cols) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int c_rows = max(a_rows, b_rows);
+    int c_cols = max(a_cols, b_cols);
+
+    if (row < c_rows && col < c_cols) {
+        int a_row_idx = a_rows == 1 ? 0 : row % a_rows; // Use modulo for broadcasting
+        int a_col_idx = a_cols == 1 ? 0 : col % a_cols; // Use modulo for broadcasting
+        int a_idx = a_row_idx * a_cols + a_col_idx;
+
+        int b_row_idx = b_rows == 1 ? 0 : row % b_rows; // Use modulo for broadcasting
+        int b_col_idx = b_cols == 1 ? 0 : col % b_cols; // Use modulo for broadcasting
+        int b_idx = b_row_idx * b_cols + b_col_idx;
+
+        c[row * c_cols + col] = a[a_idx] + b[b_idx];
     }
 }
 
-extern "C" void add_on_gpu(float *d_a, float *d_b, float *d_c, int n) {
-    int threadsPerBlock = 256;
-    int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
-    add_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, n);
+extern "C" void add_on_gpu(float *d_a, float *d_b, float *d_c, int a_rows, int a_cols, int b_rows, int b_cols) {
+
+    int c_rows = max(a_rows, b_rows);
+    int c_cols = max(a_cols, b_cols);
+
+    dim3 threadsPerBlock(16, 16);
+    dim3 blocksPerGrid((c_cols + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                       (c_rows + threadsPerBlock.y - 1) / threadsPerBlock.y);
+
+    add_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, a_rows, a_cols, b_rows, b_cols);
+
     cudaDeviceSynchronize();
 }
 
 // Element wise multiplication
+// TODO: add broadcasting here too
 
 __global__ void element_wise_mul_kernel(float *a, float *b, float *c, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -255,5 +280,31 @@ extern "C" void add_scalar_on_gpu(float scalar, float *d_in, float *d_out, int n
     int threadsPerBlock = 256;
     int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
     add_scalar_kernel<<<blocksPerGrid, threadsPerBlock>>>(scalar, d_in, d_out, n);
+    cudaDeviceSynchronize();
+}
+
+// 2D indexing
+
+__global__ void indexing_2d_kernel(const float *input, float *output, int input_rows, int input_cols, int output_rows, int output_cols, int row_start, int col_start) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (row < output_rows && col < output_cols) {
+        int input_row_idx = row + row_start;
+        int input_col_idx = col + col_start;
+
+        if (input_row_idx < input_rows && input_col_idx < input_cols) {
+            output[row * output_cols + col] = input[input_row_idx * input_cols + input_col_idx];
+        }
+    }
+}
+
+extern "C" void indexing_2d_on_gpu(const float *d_input, float *d_output, int input_rows, int input_cols, int output_rows, int output_cols, int row_start, int col_start) {
+    dim3 threadsPerBlock(16, 16);
+    dim3 numBlocks((output_cols + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                   (output_rows + threadsPerBlock.y - 1) / threadsPerBlock.y);
+
+    indexing_2d_kernel<<<numBlocks, threadsPerBlock>>>(d_input, d_output, input_rows, input_cols, output_rows, output_cols, row_start, col_start);
+
     cudaDeviceSynchronize();
 }

@@ -4,6 +4,33 @@ import random
 from micrograd_cuda.tensor import Tensor
 from micrograd_cuda.operations import Operations
 
+def test_indexing():
+
+    matrix_data = [[random.random() for _ in range(100)] for _ in range(100)]
+    matrix = Tensor(matrix_data, requires_grad=False)
+
+    # CUDA
+    matrix.to("cuda")
+    start = time.time()
+    x = matrix[:5, 10:]
+    x = x[:, 8]
+    print(f"Elapsed: {time.time() - start:.5f} sec")
+    x.to("cpu")
+    h_x_gpu = x
+
+    # CPU
+    matrix.to("cpu")
+    start = time.time()
+    x = matrix[:5, 10:]
+    x = x[:, 8]
+    print(f"Elapsed: {time.time() - start:.5f} sec")
+
+    assert x.shape == (5, 1)
+    assert h_x_gpu.shape == (5, 1)
+    difference = (x - h_x_gpu).abs().sum().data[0][0]/5
+    assert difference < 1e-5
+    print(f"Difference: {difference}")
+
 def test_zeros_matrix_like():
     shape = (1000, 1000)
 

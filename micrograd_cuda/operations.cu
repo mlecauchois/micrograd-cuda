@@ -257,3 +257,29 @@ extern "C" void add_scalar_on_gpu(float scalar, float *d_in, float *d_out, int n
     add_scalar_kernel<<<blocksPerGrid, threadsPerBlock>>>(scalar, d_in, d_out, n);
     cudaDeviceSynchronize();
 }
+
+// 2D indexing
+
+__global__ void indexing_2d_kernel(const float *input, float *output, int input_rows, int input_cols, int output_rows, int output_cols, int row_start, int col_start) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (row < output_rows && col < output_cols) {
+        int input_row_idx = row + row_start;
+        int input_col_idx = col + col_start;
+
+        if (input_row_idx < input_rows && input_col_idx < input_cols) {
+            output[row * output_cols + col] = input[input_row_idx * input_cols + input_col_idx];
+        }
+    }
+}
+
+extern "C" void indexing_2d_on_gpu(const float *d_input, float *d_output, int input_rows, int input_cols, int output_rows, int output_cols, int row_start, int col_start) {
+    dim3 threadsPerBlock(16, 16);
+    dim3 numBlocks((output_cols + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                   (output_rows + threadsPerBlock.y - 1) / threadsPerBlock.y);
+
+    indexing_2d_kernel<<<numBlocks, threadsPerBlock>>>(d_input, d_output, input_rows, input_cols, output_rows, output_cols, row_start, col_start);
+
+    cudaDeviceSynchronize();
+}

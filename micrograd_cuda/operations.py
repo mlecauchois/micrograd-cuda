@@ -19,6 +19,7 @@ lib.add_scalar_on_gpu.argtypes = [ctypes.c_float, ctypes.c_void_p, ctypes.c_void
 lib.move_to_gpu.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_int]
 lib.move_to_gpu.restype = ctypes.POINTER(ctypes.c_float)
 lib.move_to_cpu.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float), ctypes.c_int]
+lib.indexing_2d_on_gpu.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
 
 class OperationsBase:
     
@@ -137,6 +138,13 @@ class OperationsCuda(OperationsBase):
         data_ctypes = array_type(*flat_data) # Instantiate array with data
         out = lib.move_to_gpu(data_ctypes, data_ctypes._length_)
         return out
+    
+    @staticmethod
+    def indexing_2d(matrix, output_rows, output_cols, row_slice_start, col_slice_start, shape):
+        size = output_rows * output_cols
+        out = lib.allocate_on_gpu(size * ctypes.sizeof(ctypes.c_float))
+        lib.indexing_2d_on_gpu(matrix, out, shape[0], shape[1], output_rows, output_cols, row_slice_start, col_slice_start)
+        return out
 
 class OperationsCpu(OperationsBase):
 
@@ -234,6 +242,10 @@ class OperationsCpu(OperationsBase):
         h_data_reshaped = OperationsCpu.reshape_to_nested_list(h_data, original_shape)
         OperationsCpu.free_gpu_memory(data)
         return h_data_reshaped
+    
+    @staticmethod
+    def indexing_2d(matrix, output_rows, output_cols, row_slice_start, col_slice_start, shape):
+        return [row[col_slice_start:col_slice_start + output_cols] for row in matrix[row_slice_start:row_slice_start + output_rows]]
 
 class Operations:
 

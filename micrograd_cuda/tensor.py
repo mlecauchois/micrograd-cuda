@@ -130,7 +130,7 @@ class Tensor:
 
         out._backward = _backward
         return out
-
+                     
     def sum(self):
         out_data = Operations(self.device).summation(self.data, shape=self.shape)
         out = Tensor(data=out_data, children=(self,), device=self.device, requires_grad=self.requires_grad, shape=(1, 1))
@@ -146,36 +146,46 @@ class Tensor:
 
         out._backward = _backward
         return out
+    
+    def __getitem__(self, index):
+
+        row_slice, col_slice = index 
+        if isinstance(row_slice, int):
+            row_slice = slice(row_slice, row_slice+1)
+        if isinstance(col_slice, int):
+            col_slice = slice(col_slice, col_slice+1)
+        row_slice_stop = row_slice.stop if row_slice.stop is not None else self.shape[0]
+        col_slice_stop = col_slice.stop if col_slice.stop is not None else self.shape[1]
+        row_slice_start = row_slice.start if row_slice.start is not None else 0
+        col_slice_start = col_slice.start if col_slice.start is not None else 0
+        output_rows = row_slice_stop - row_slice_start
+        output_cols = col_slice_stop - col_slice_start
+
+        out_data = Operations(self.device).indexing_2d(self.data, output_rows, output_cols, row_slice_start, col_slice_start, self.shape)
+        out = Tensor(data=out_data, device=self.device, requires_grad=self.requires_grad, shape=(output_rows, output_cols))
+        
+        def _backward():
+            raise NotImplementedError("Backward for indexing is not implemented yet.")
+        
+        out._backward = _backward
+        return out
 
     def concat(self, other, axis=0):
         # This implementation assumes a simple case where tensors are 2D
         # and concatenated along the first dimension (axis=0)
-        # TODO: fix this to handle any axis and any dimension
         if axis != 0:
             raise NotImplementedError(
                 "Concatenation along this axis is not implemented."
             )
 
-        out = Tensor(data=Operations(self.device).matrix_concat(self.data, other.data, shape_a=self.shape, shape_b=other.shape), children=(self, other), device=self.device, requires_grad=self.requires_grad, shape=(self.shape[0] + other.shape[0], self.shape[1]))
+        out_data = Operations(self.device).matrix_concat(self.data, other.data, shape_a=self.shape, shape_b=other.shape)
+        out = Tensor(data=out_data, children=(self, other), device=self.device, requires_grad=self.requires_grad, shape=(self.shape[0] + other.shape[0], self.shape[1]))
 
         def _backward():
             # Since concatenation is along axis=0, we split the gradient back to the original tensors
             # based on their data length
-            # TODO: make this way more efficient, implement kernel for that
-            if self.device == "cuda":
-                out_grad_data = Operations("cpu").to_device(data=out.grad.data, original_shape=out.shape)
-            else:
-                out_grad_data = out.grad.data
-            self_len = self.shape[0]
-            out_grad_data_self = out_grad_data[:self_len]
-            out_grad_data_other = out_grad_data[self_len:]
-            other_len = len(out_grad_data_other)
-            # Send to gpu
-            if self.device == "cuda":
-                out_grad_data_self = Operations(self.device).to_device(data=out_grad_data_self, original_shape=(self_len, self.shape[1]))
-                out_grad_data_other = Operations(self.device).to_device(data=out_grad_data_other, original_shape=(other_len, other.shape[1]))
-            self.grad.data = Operations(self.device).matrix_add(self.grad.data, out_grad_data_self, shape=self.shape)
-            other.grad.data = Operations(self.device).matrix_add(other.grad.data, out_grad_data_other, shape=other.shape)
+            self.grad += out.grad[:self.shape[0], :]
+            other.grad += out.grad[self.shape[0]:, :]
 
         out._backward = _backward
         return out

@@ -81,7 +81,7 @@ def test_backward():
     model.to("cuda")
 
     for p in model.parameters():
-        p.grad.data = Operations("cuda").zeros_matrix_like(shape=p.shape)
+        p.grad.data, _ = Operations("cuda").zeros_matrix_like(shape=p.shape)
 
     out = model(x_test_backward)
     y = Tensor([[1.0]])
@@ -99,7 +99,7 @@ def test_backward():
     model.to("cpu")
 
     for p in model.parameters():
-        p.grad.data = Operations("cpu").zeros_matrix_like(shape=p.shape)
+        p.grad.data, _ = Operations("cpu").zeros_matrix_like(shape=p.shape)
 
     out = model(x_test_backward)
     y = Tensor([[1.0]])
@@ -131,13 +131,13 @@ def mlp_train_batch(device: str):
 
         # backward pass
         for p in model.parameters():
-            p.grad.data = Operations(device).zeros_matrix_like(shape=p.shape)
+            p.grad.data, _ = Operations(device).zeros_matrix_like(shape=p.shape)
 
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape), p.data, shape=p.shape)
+            p.data, _ = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)
     print(f"Elapsed: {time.time() - start:.2f} sec")
     loss.to("cpu")
     assert round(loss.data[0][0], 5) == last_loss
@@ -163,13 +163,13 @@ def mlp_train_batch_large(device: str, model, xs_batch_large, ys_batch_large):
 
         # backward pass
         for p in model.parameters():
-            p.grad.data = Operations(device).zeros_matrix_like(shape=p.shape)
+            p.grad.data, _ = Operations(device).zeros_matrix_like(shape=p.shape)
 
         loss.backward()
 
         # update
         for p in model.parameters():
-            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape), p.data, shape=p.shape)
+            p.data, _ = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape)[0], p.data, shape_a=p.shape, shape_b=p.shape)
 
     print(f"Elapsed: {time.time() - start:.2f} sec")
 

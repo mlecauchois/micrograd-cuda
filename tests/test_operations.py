@@ -4,6 +4,64 @@ import random
 from micrograd_cuda.tensor import Tensor
 from micrograd_cuda.operations import Operations
 
+def test_matrix_add():
+    shape = (1000, 1000)
+
+    # Random matrices
+    x = Tensor([[random.random() for _ in range(shape[1])] for _ in range(shape[0])], requires_grad=False)
+    y = Tensor([[random.random() for _ in range(shape[1])] for _ in range(shape[0])], requires_grad=False)
+
+    ### CUDA
+
+    x.to("cuda")
+    y.to("cuda")
+    start = time.time()
+    z = x + y
+    print(f"Elapsed: {time.time() - start:.5f} sec")
+    z.to("cpu")
+    h_z_gpu = z
+
+    ### CPU
+
+    x.to("cpu")
+    y.to("cpu")
+    start = time.time()
+    z = x + y
+    print(f"Elapsed: {time.time() - start:.5f} sec")
+
+    difference = (z - h_z_gpu).abs().sum().data[0][0]/(shape[0]*shape[1])
+    assert difference < 1e-5
+    print(f"Difference: {difference}")
+
+def test_matrix_add_broadcast():
+    shape = (1000, 1000)
+
+    # Random matrices
+    x = Tensor([[random.random() for _ in range(shape[1])] for _ in range(shape[0])], requires_grad=False)
+    y = Tensor([[random.random()] for _ in range(shape[0])], requires_grad=False)
+
+    ### CUDA
+
+    x.to("cuda")
+    y.to("cuda")
+    start = time.time()
+    z = x + y
+    print(f"Elapsed: {time.time() - start:.5f} sec")
+    z.to("cpu")
+    h_z_gpu = z
+
+    ### CPU
+
+    x.to("cpu")
+    y.to("cpu")
+    start = time.time()
+    z = x + y
+    print(f"Elapsed: {time.time() - start:.5f} sec")
+
+    difference = (z - h_z_gpu).abs().sum().data[0][0]/(shape[0]*shape[1])
+    assert difference < 1e-5
+    print(f"Difference: {difference}")
+
 def test_indexing():
 
     matrix_data = [[random.random() for _ in range(100)] for _ in range(100)]
@@ -37,7 +95,7 @@ def test_zeros_matrix_like():
     # CUDA
 
     start = time.time()
-    x = Tensor(Operations("cuda").zeros_matrix_like(shape), requires_grad=False, device="cuda", shape=shape)
+    x = Tensor(Operations("cuda").zeros_matrix_like(shape)[0], requires_grad=False, device="cuda", shape=shape)
     print(f"Elapsed: {time.time() - start:.5f} sec")
     x.to("cpu")
     h_x_gpu = x
@@ -45,7 +103,7 @@ def test_zeros_matrix_like():
     # CPU
 
     start = time.time()
-    x = Tensor(Operations("cpu").zeros_matrix_like(shape), requires_grad=False, device="cpu", shape=shape)
+    x = Tensor(Operations("cpu").zeros_matrix_like(shape)[0], requires_grad=False, device="cpu", shape=shape)
     print(f"Elapsed: {time.time() - start:.5f} sec")
 
     difference = (x - h_x_gpu).abs().sum().data[0][0]/(shape[0]*shape[1])
@@ -58,7 +116,7 @@ def test_ones_matrix_like():
     # CUDA
 
     start = time.time()
-    x = Tensor(Operations("cuda").ones_matrix_like(shape), requires_grad=False, device="cuda", shape=shape)
+    x = Tensor(Operations("cuda").ones_matrix_like(shape)[0], requires_grad=False, device="cuda", shape=shape)
     print(f"Elapsed: {time.time() - start:.5f} sec")
     x.to("cpu")
     h_x_gpu = x
@@ -66,7 +124,7 @@ def test_ones_matrix_like():
     # CPU
 
     start = time.time()
-    x = Tensor(Operations("cpu").ones_matrix_like(shape), requires_grad=False, device="cpu", shape=shape)
+    x = Tensor(Operations("cpu").ones_matrix_like(shape)[0], requires_grad=False, device="cpu", shape=shape)
     print(f"Elapsed: {time.time() - start:.5f} sec")
 
     difference = (x - h_x_gpu).abs().sum().data[0][0]/(shape[0]*shape[1])
@@ -82,7 +140,7 @@ def test_power_prime():
 
     x.to("cuda")
     start = time.time()
-    y = Operations("cuda").power_prime(x.data, 2, shape=shape)
+    y, _ = Operations("cuda").power_prime(x.data, 2, shape=shape)
     print(f"Elapsed: {time.time() - start:.5f} sec")
     y = Tensor(y, requires_grad=False, device="cuda", shape=shape)
     y.to("cpu")
@@ -92,7 +150,7 @@ def test_power_prime():
 
     x.to("cpu")
     start = time.time()
-    y = Operations("cpu").power_prime(x.data, 2, shape=shape)
+    y, _ = Operations("cpu").power_prime(x.data, 2, shape=shape)
     print(f"Elapsed: {time.time() - start:.5f} sec")
     y = Tensor(y, requires_grad=False, device="cpu", shape=shape)
 
@@ -109,7 +167,7 @@ def test_tanh_prime():
 
     x.to("cuda")
     start = time.time()
-    y = Operations("cuda").tanh_prime(x.data, shape=shape)
+    y, _ = Operations("cuda").tanh_prime(x.data, shape=shape)
     print(f"Elapsed: {time.time() - start:.5f} sec")
     y = Tensor(y, requires_grad=False, device="cuda", shape=shape)
     y.to("cpu")
@@ -119,7 +177,7 @@ def test_tanh_prime():
 
     x.to("cpu")
     start = time.time()
-    y = Operations("cpu").tanh_prime(x.data, shape=shape)
+    y, _ = Operations("cpu").tanh_prime(x.data, shape=shape)
     print(f"Elapsed: {time.time() - start:.5f} sec")
     y = Tensor(y, requires_grad=False, device="cpu", shape=shape)
 
@@ -232,35 +290,6 @@ def test_power():
     print(f"Elapsed: {time.time() - start:.5f} sec")
 
     difference = (y - h_y_gpu).abs().sum().data[0][0]/(shape[0]*shape[1])
-    assert difference < 1e-5
-    print(f"Difference: {difference}")
-
-def test_matrix_add():
-    shape = (1000, 1000)
-
-    # Random matrices
-    x = Tensor([[random.random() for _ in range(shape[1])] for _ in range(shape[0])], requires_grad=False)
-    y = Tensor([[random.random() for _ in range(shape[1])] for _ in range(shape[0])], requires_grad=False)
-
-    ### CUDA
-
-    x.to("cuda")
-    y.to("cuda")
-    start = time.time()
-    z = x + y
-    print(f"Elapsed: {time.time() - start:.5f} sec")
-    z.to("cpu")
-    h_z_gpu = z
-
-    ### CPU
-
-    x.to("cpu")
-    y.to("cpu")
-    start = time.time()
-    z = x + y
-    print(f"Elapsed: {time.time() - start:.5f} sec")
-
-    difference = (z - h_z_gpu).abs().sum().data[0][0]/(shape[0]*shape[1])
     assert difference < 1e-5
     print(f"Difference: {difference}")
 

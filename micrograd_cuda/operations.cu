@@ -103,21 +103,42 @@ extern "C" void transpose_on_gpu(float *d_in, float *d_out, int rows, int cols) 
 
 // Matrix addition
 
-__global__ void add_kernel(float *a, float *b, float *c, int n) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < n) {
-        c[idx] = a[idx] + b[idx];
+__global__ void add_kernel(float *a, float *b, float *c, int a_rows, int a_cols, int b_rows, int b_cols) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int c_rows = max(a_rows, b_rows);
+    int c_cols = max(a_cols, b_cols);
+
+    if (row < c_rows && col < c_cols) {
+        int a_row_idx = a_rows == 1 ? 0 : row % a_rows; // Use modulo for broadcasting
+        int a_col_idx = a_cols == 1 ? 0 : col % a_cols; // Use modulo for broadcasting
+        int a_idx = a_row_idx * a_cols + a_col_idx;
+
+        int b_row_idx = b_rows == 1 ? 0 : row % b_rows; // Use modulo for broadcasting
+        int b_col_idx = b_cols == 1 ? 0 : col % b_cols; // Use modulo for broadcasting
+        int b_idx = b_row_idx * b_cols + b_col_idx;
+
+        c[row * c_cols + col] = a[a_idx] + b[b_idx];
     }
 }
 
-extern "C" void add_on_gpu(float *d_a, float *d_b, float *d_c, int n) {
-    int threadsPerBlock = 256;
-    int blocksPerGrid = (n + threadsPerBlock - 1) / threadsPerBlock;
-    add_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, n);
+extern "C" void add_on_gpu(float *d_a, float *d_b, float *d_c, int a_rows, int a_cols, int b_rows, int b_cols) {
+
+    int c_rows = max(a_rows, b_rows);
+    int c_cols = max(a_cols, b_cols);
+
+    dim3 threadsPerBlock(16, 16);
+    dim3 blocksPerGrid((c_cols + threadsPerBlock.x - 1) / threadsPerBlock.x,
+                       (c_rows + threadsPerBlock.y - 1) / threadsPerBlock.y);
+
+    add_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c, a_rows, a_cols, b_rows, b_cols);
+
     cudaDeviceSynchronize();
 }
 
 // Element wise multiplication
+// TODO: add broadcasting here too
 
 __global__ void element_wise_mul_kernel(float *a, float *b, float *c, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;

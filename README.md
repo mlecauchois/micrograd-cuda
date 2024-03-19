@@ -49,12 +49,12 @@ for k in range(epochs):
 
     # Backward pass
     for p in model.parameters():
-        p.grad.data = Operations(p.device).zeros_matrix_like(shape=p.shape)
+        p.grad.data, _ = Operations(p.device).zeros_matrix_like(shape=p.shape)
     loss.backward()
 
     # Update
     for p in model.parameters():
-            p.data = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape), p.data, shape=p.shape)
+            p.data, _ = Operations(p.device).matrix_add(Operations(p.device).matrix_scalar_mul(-0.1, p.grad.data, shape=p.shape), p.data, shape=p.shape)
 
 print(f"Elapsed: {time.time() - start:.2f} sec")
     

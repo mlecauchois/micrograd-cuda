@@ -9,13 +9,10 @@ class Layer:
 
     def __init__(self, nin, nout, label=None):
         label = label if label is not None else f"nin:{nin} nout:{nout}"
-        self.w = Tensor(
-            [[random.uniform(-1, 1) for _ in range(nin + 1)] for _ in range(nout)],
-            label=label,
-        )
+        self.w = Tensor(data=[[random.uniform(-1, 1) for _ in range(nin + 1)] for _ in range(nout)], label=label)
 
     def __call__(self, x):
-        bias_input = Tensor([[1.0 for _ in range(x.shape[1])]])
+        bias_input = Tensor(data=[[1.0 for _ in range(x.shape[1])]])
         bias_input.to(x.device)
         x_with_bias = x.concat(bias_input, axis=0)
         outs = self.w @ x_with_bias

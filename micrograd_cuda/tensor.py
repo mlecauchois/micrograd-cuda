@@ -158,7 +158,6 @@ class Tensor:
 
         out = Tensor(data=Operations(self.device).matrix_concat(self.data, other.data, shape_a=self.shape, shape_b=other.shape), children=(self, other), device=self.device, requires_grad=self.requires_grad, shape=(self.shape[0] + other.shape[0], self.shape[1]))
 
-        # TODO: fix grad operations
         def _backward():
             # Since concatenation is along axis=0, we split the gradient back to the original tensors
             # based on their data length

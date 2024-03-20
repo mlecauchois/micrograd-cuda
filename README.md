@@ -78,6 +78,7 @@ The codebase is still WIP with some rough spots, especially around CUDA Tensor d
 - [ ] Error handling
 - [ ] CUDA optimizations
 - [ ] >2D tensors
+- [ ] Rust
 
 ## Running tests
 
